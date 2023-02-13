@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import {
   VStack,
@@ -11,6 +12,8 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
+
+import { useAuth } from "@hooks/useAuth";
 
 import { api } from "@services/api";
 import { AppError } from "@utils/AppError";
@@ -50,8 +53,11 @@ export function SignUp() {
     resolver: yupResolver(signUpSchema),
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+
   const navigation = useNavigation();
   const toast = useToast();
+  const { singIn } = useAuth();
 
   function handleGoBack() {
     navigation.goBack();
@@ -59,15 +65,18 @@ export function SignUp() {
 
   async function handleSignUp({ name, email, password }: FormDataProps) {
     try {
-      const response = await api.post("/users", { name, email, password });
-      console.log(response.data);
+      setIsLoading(true);
+
+      await api.post("/users", { name, email, password });
+      await singIn(email, password);
     } catch (error) {
+      setIsLoading(false);
+
       const isAppError = error instanceof AppError;
 
       const title = isAppError
         ? error.message
         : "Não foi possível criar a conta. Tente novamente mais tarde";
-
       toast.show({
         title,
         placement: "top",
